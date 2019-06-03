@@ -31,7 +31,7 @@ argparser.add_argument(
     "--config-file",
     type=Path,
     default=Path("/config/config.yaml"),
-    help="Path to the data directory",
+    help="Path to the config file. Defaults to /config/config.yaml",
 )
 
 
@@ -55,10 +55,10 @@ async def github_webhook(req: web.Request) -> web.Response:
     # - git pull
     # - git pull workers
     # - stop workers
-    # - perform config migration
-    # - perform database migration
+    # - perform config migration (parallel?)
+    # - perform database migration (parallel?)
+    # - docker pull workers (if needed) (parallel?)
     # - restart (if needed)
-    # - docker pull workers if needed
     # - start workers
 
     return web.Response()
