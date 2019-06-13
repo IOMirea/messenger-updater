@@ -1,14 +1,40 @@
 FROM python:3.7-alpine
 
+# leader updates postgres database
+# TODO: choose leader randomly?
+ENV LEADER=0
+
 WORKDIR /code
 
 RUN apk add --no-cache \
-	build-base \
+	gcc \
+	musl-dev \
 	git
 
-COPY requirements.txt /requirements.txt
-RUN pip install --no-cache-dir -r /requirements.txt
-RUN rm /requirements.txt
+# avoid cache invalidation after copying entire directory
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+RUN apk del \
+	gcc \
+	musl-dev
+
+COPY . .
+
+RUN mkdir /config
+RUN mkdir /api
+
+# volumes are owned by host user no matter what
+#RUN adduser -S updater
+#RUN chown -R updater /config
+#RUN chown -R updater /code
+#RUN chown -R updater /api
+#USER updater
+
+VOLUME /config
+VOLUME /api
 
 EXPOSE 8081
-CMD ["python3.7", "updater/app.py"]
+
+CMD ["python", "updater/app.py"]
