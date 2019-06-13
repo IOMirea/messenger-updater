@@ -17,22 +17,18 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import hmac
-import argparse
-
-from pathlib import Path
 
 import yaml
 import docker
 
 from aiohttp import web
 
-argparser = argparse.ArgumentParser(description="IOMirea server updater")
-argparser.add_argument(
-    "--config-file",
-    type=Path,
-    default=Path("/config/config.yaml"),
-    help="Path to the config file. Defaults to /config/config.yaml",
-)
+from cli import args
+from migrate import migrate
+
+
+async def on_startup(app: web.Application) -> None:
+    await migrate(app)
 
 
 async def github_webhook(req: web.Request) -> web.Response:
@@ -67,12 +63,13 @@ async def github_webhook(req: web.Request) -> web.Response:
 if __name__ == "__main__":
     app = web.Application()
 
-    app["args"] = argparser.parse_args()
-
-    with open(app["args"].config_file, "r") as f:
+    with open(args.config_file, "r") as f:
         app["config"] = yaml.load(f, Loader=yaml.SafeLoader)
 
+    app["args"] = args
     app["docker"] = docker.from_env()
+
+    app.on_startup.append(on_startup)
 
     app.add_routes([web.get("/github-webhook", github_webhook)])
 

@@ -19,18 +19,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import sys
 import time
-import yaml
-import asyncio
 import importlib
 
 from typing import Dict, Any, Optional, List
 
+import yaml
 import asyncpg
+
+from aiohttp import web
 
 from migration import BaseMigration
 from utils import init_logger, migrate_log
-
-CONFIG_PATH = "config/config.yaml"
 
 
 async def get_config_version(config: Dict[str, Any]) -> int:
@@ -88,7 +87,7 @@ def get_migrations(
 
 
 async def perform_config_migration(config: Dict[str, Any]) -> Dict[str, Any]:
-    migrations = get_migrations("migrations/config", config)
+    migrations = get_migrations("updater/migrations/config", config)
     current_version = await get_config_version(config)
 
     migrations = [m for m in migrations if m.version > current_version]
@@ -120,16 +119,15 @@ async def perform_config_migration(config: Dict[str, Any]) -> Dict[str, Any]:
 
     migrate_log(f"Successfully finished {len(migrations)} config migrations")
 
-    with open(CONFIG_PATH, "w") as f:
-        f.write(yaml.dump(config, default_flow_style=False))
-
     return config
 
 
 async def perform_pg_migration(
     config: Dict[str, Any], connection: asyncpg.Connection
 ) -> None:
-    migrations = get_migrations("migrations/postgres", config, connection)
+    migrations = get_migrations(
+        "updater/migrations/postgres", config, connection
+    )
     current_version = await get_pg_version(connection)
 
     migrations = [m for m in migrations if m.version > current_version]
@@ -167,25 +165,21 @@ async def perform_pg_migration(
     migrate_log(f"Successfully finished {len(migrations)} database migrations")
 
 
-async def main() -> None:
-    with open(CONFIG_PATH, "r") as f:
-        config = yaml.load(f, Loader=yaml.SafeLoader)
-
-    init_logger(config)
-    new_config = await perform_config_migration(config)
+async def migrate(app: web.Application) -> None:
+    init_logger(app["config"])
+    new_config = await perform_config_migration(app["config"])
     init_logger(new_config)
 
-    for i in reversed(range(10)):
-        try:
-            pg_connection = await asyncpg.connect(**new_config["postgres"])
-        except ConnectionRefusedError:
-            migrate_log(
-                f"Failed to connect to postgres, remaining attempts: {i}"
-            )
-            time.sleep(1)
+    with open(app["args"].config_file, "w") as f:
+        f.write(yaml.dump(new_config, default_flow_style=False))
 
-    await perform_pg_migration(config, pg_connection)
+    app["config"] = new_config
 
+    pg_connection = await asyncpg.connect(**app["config"]["postgres"])
 
-if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
+    if os.environ.get("LEADER", "0") == "0":
+        migrate_log("Not leader, skipping postgres migration")
+        return
+
+    migrate_log("Leader, starting postgres migration")
+    await perform_pg_migration(app["config"], pg_connection)

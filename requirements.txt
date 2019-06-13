@@ -5,12 +5,14 @@
 #    pip-compile --no-index --output-file=requirements.txt requirements.in
 #
 aiohttp==3.5.4
-async-timeout==3.0.1      # via aiohttp
+aioredis==1.2.0
+async-timeout==3.0.1      # via aiohttp, aioredis
 asyncpg==0.18.3
 attrs==19.1.0             # via aiohttp
 certifi==2019.3.9         # via requests
 chardet==3.0.4            # via aiohttp, requests
 docker==4.0.1
+hiredis==1.0.0            # via aioredis
 idna==2.8                 # via requests, yarl
 multidict==4.5.2          # via aiohttp, yarl
 pyyaml==5.1
