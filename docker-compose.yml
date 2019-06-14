@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  updater:
+    image: iomirea/updater
+    container_name: updater
+    network_mode: host
+    restart: unless-stopped
+
+  registrator:
+    image: gliderlabs/registrator
+    command: "consul://localhost:8500"
+    container_name: registrator
+    network_mode: host
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+    restart: unless-stopped
+
+# TODO: consul agent container
+# TODO: volumes for updater
