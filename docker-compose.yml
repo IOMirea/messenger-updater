@@ -8,6 +8,7 @@ services:
     volumes:
       - ../config:/config
       - ../api:/api
+      - .:/code
     restart: unless-stopped
 
   registrator:
@@ -15,6 +16,8 @@ services:
     command: "consul://localhost:8500"
     container_name: registrator
     network_mode: host
+    depends_on:
+      - consul_client
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock
     restart: unless-stopped

@@ -19,7 +19,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import hmac
 
 import yaml
-import docker
 
 from aiohttp import web
 
@@ -66,7 +65,6 @@ if __name__ == "__main__":
         app["config"] = yaml.load(f, Loader=yaml.SafeLoader)
 
     app["args"] = args
-    app["docker"] = docker.from_env()
 
     app.on_startup.append(on_startup)
 
