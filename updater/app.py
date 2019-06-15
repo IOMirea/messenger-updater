@@ -53,7 +53,6 @@ async def github_webhook(req: web.Request) -> web.Response:
     # - stop workers
     # - perform config migration (parallel?)
     # - perform database migration (parallel?)
-    # - docker pull workers (if needed) (parallel?)
     # - restart (if needed)
     # - start workers
 

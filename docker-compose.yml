@@ -6,9 +6,8 @@ services:
     container_name: updater
     network_mode: host
     volumes:
-      - /var/run/docker.sock:/tmp/docker.sock
-      - /home/iomirea/config:/config
-      - /home/iomirea/api:/api
+      - ../config:/config
+      - ../api:/api
     restart: unless-stopped
 
   registrator:
@@ -26,5 +25,5 @@ services:
     container_name: consul_client
     network_mode: host
     volumes:
-      - /home/iomirea/consul/client/data:/consul/data
+      - ../consul/client/data:/consul/data
     restart: unless-stopped

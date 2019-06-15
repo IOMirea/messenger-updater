@@ -1,7 +1,7 @@
 FROM python:3.7-alpine
 
-ARG UID=1000
-ARG GID=1000
+ARG UID=1500
+ARG GID=1500
 
 # leader updates postgres database
 # TODO: choose leader randomly?
@@ -30,11 +30,11 @@ RUN mkdir /api
 
 RUN addgroup -g $GID -S iomirea && \
     adduser -u $UID -S updater -G iomirea
+
 RUN chown -R updater:iomirea /code
 RUN chown -R updater:iomirea /config
 
-# docker socket access issue
-#USER updater
+USER updater
 
 VOLUME /config
 VOLUME /api
