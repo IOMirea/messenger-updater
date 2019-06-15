@@ -1,5 +1,8 @@
 FROM python:3.7-alpine
 
+ARG UID=1000
+ARG GID=1000
+
 # leader updates postgres database
 # TODO: choose leader randomly?
 ENV LEADER=0
@@ -25,11 +28,12 @@ COPY . .
 RUN mkdir /config
 RUN mkdir /api
 
-# volumes are owned by host user no matter what
-#RUN adduser -S updater
-#RUN chown -R updater /config
-#RUN chown -R updater /code
-#RUN chown -R updater /api
+RUN addgroup -g $GID -S iomirea && \
+    adduser -u $UID -S updater -G iomirea
+RUN chown -R updater:iomirea /code
+RUN chown -R updater:iomirea /config
+
+# docker socket access issue
 #USER updater
 
 VOLUME /config

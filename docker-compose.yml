@@ -5,6 +5,10 @@ services:
     image: iomirea/updater
     container_name: updater
     network_mode: host
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock
+      - /home/iomirea/config:/config
+      - /home/iomirea/api:/api
     restart: unless-stopped
 
   registrator:
@@ -16,5 +20,11 @@ services:
       - /var/run/docker.sock:/tmp/docker.sock
     restart: unless-stopped
 
-# TODO: consul agent container
-# TODO: volumes for updater
+  consul_client:
+    image: consul
+    command: "agent -node=${HOSTNAME} -bind=${EXTERNAL_IP} -retry-join=${CONSUL_CLUSTER_IP}"
+    container_name: consul_client
+    network_mode: host
+    volumes:
+      - /home/iomirea/consul/client/data:/consul/data
+    restart: unless-stopped
