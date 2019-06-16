@@ -80,8 +80,8 @@ if __name__ == "__main__":
 
     app.on_startup.append(on_startup)
 
-    app.add_routes([web.get("/wh/github/updater", updater_wh)])
-    app.add_routes([web.get("/wh/github/api", api_wh)])
+    app.add_routes([web.post("/wh/github/updater", updater_wh)])
+    app.add_routes([web.post("/wh/github/api", api_wh)])
 
     web.run_app(
         app,
