@@ -30,7 +30,7 @@ async def on_startup(app: web.Application) -> None:
     await migrate(app)
 
 
-async def github_webhook(req: web.Request) -> web.Response:
+async def verify_github_request(req: web.Request) -> None:
     header_signature = req.headers.get("X-Hub-Signature")
     if not header_signature:
         raise web.HTTPUnauthorized(reason="Missing signature header")
@@ -44,7 +44,11 @@ async def github_webhook(req: web.Request) -> web.Response:
     mac = hmac.new(secret.encode(), msg=await req.read(), digestmod="sha1")
 
     if not hmac.compare_digest(mac.hexdigest(), signature):
-        raise web.HTTPUnauthorized
+        raise web.HTTPUnauthorized(reason="Hashes did not match")
+
+
+async def updater_wh(req: web.Request) -> web.Response:
+    await verify_github_request(req)
 
     # TODO:
     # - git pull
@@ -54,6 +58,14 @@ async def github_webhook(req: web.Request) -> web.Response:
     # - perform database migration (parallel?)
     # - restart (if needed)
     # - start workers
+
+    return web.Response()
+
+
+async def api_wh(req: web.Request) -> web.Response:
+    await verify_github_request(req)
+
+    # TODO: everything
 
     return web.Response()
 
@@ -68,7 +80,8 @@ if __name__ == "__main__":
 
     app.on_startup.append(on_startup)
 
-    app.add_routes([web.get("/github-webhook", github_webhook)])
+    app.add_routes([web.get("/wh/github/updater", updater_wh)])
+    app.add_routes([web.get("/wh/github/api", api_wh)])
 
     web.run_app(
         app,
