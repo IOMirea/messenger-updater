@@ -46,4 +46,4 @@ VOLUME /api
 
 EXPOSE ${PORT}
 
-CMD python updater/app.py --port=$PORT
+CMD python updater/app.py --port=$PORT --host=0.0.0.0
