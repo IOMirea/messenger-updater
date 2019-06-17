@@ -4,11 +4,12 @@ services:
   updater:
     image: iomirea/updater
     container_name: updater
-    network_mode: host
     volumes:
       - ../config:/config
       - ../api:/api
       - .:/code
+    ports:
+      - 8081:8081
     restart: unless-stopped
 
   registrator:
