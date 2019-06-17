@@ -85,6 +85,6 @@ if __name__ == "__main__":
 
     web.run_app(
         app,
-        port=app["config"]["updater"]["port"],
-        host=app["config"]["updater"]["host"],
+        host=app["args"].host,
+        port=app["args"].port,
     )

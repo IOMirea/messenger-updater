@@ -3,6 +3,11 @@ FROM python:3.7-alpine
 ARG UID=1500
 ARG GID=1500
 
+ARG PORT=8081
+
+# workaround for CMD not being able to parse variable at build time
+ENV PORT ${PORT}
+
 # leader updates postgres database
 # TODO: choose leader randomly?
 ENV LEADER=0
@@ -39,6 +44,6 @@ USER updater
 VOLUME /config
 VOLUME /api
 
-EXPOSE 8081
+EXPOSE ${PORT}
 
-CMD ["python", "updater/app.py"]
+CMD python updater/app.py --port=$PORT
