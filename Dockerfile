@@ -10,7 +10,10 @@ ENV PORT ${PORT}
 
 # leader updates postgres database
 # TODO: choose leader randomly?
-ENV LEADER=0
+ENV LEADER 0
+
+# enables propper stdout flushing
+ENV PYTHONUNBUFFERED 1
 
 WORKDIR /code
 

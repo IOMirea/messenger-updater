@@ -23,11 +23,17 @@ import yaml
 from aiohttp import web
 
 from cli import args
+from rpc import init_rpc, stop_rpc
 from migrate import migrate
 
 
 async def on_startup(app: web.Application) -> None:
     await migrate(app)
+    await init_rpc(app)
+
+
+async def on_cleanup(app: web.Application) -> None:
+    await stop_rpc(app)
 
 
 async def verify_github_request(req: web.Request) -> None:
@@ -79,6 +85,7 @@ if __name__ == "__main__":
     app["args"] = args
 
     app.on_startup.append(on_startup)
+    app.on_cleanup.append(on_cleanup)
 
     app.add_routes([web.post("/wh/github/updater", updater_wh)])
     app.add_routes([web.post("/wh/github/api", api_wh)])

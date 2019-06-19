@@ -29,7 +29,6 @@ import asyncpg
 from aiohttp import web
 
 from migration import BaseMigration
-from utils import init_logger, migrate_log
 
 
 async def get_config_version(config: Dict[str, Any]) -> int:
@@ -98,26 +97,26 @@ async def perform_config_migration(config: Dict[str, Any]) -> Dict[str, Any]:
     migrations.sort(key=lambda m: m.version)
     latest = migrations[-1].version
 
-    migrate_log(
+    print(
         f'Beginning config migrations: {" -> ".join([str(current_version)] + [str(m.version) for m in migrations])}'
     )
 
     try:
         for m in migrations:
-            migrate_log(f"Started  migration {m.version} ...")
+            print(f"Started  migration {m.version} ...")
 
             begin = time.time()
             config = await m._up(latest)
             end = time.time()
 
-            migrate_log(
+            print(
                 f"Finished migration {m.version} in {round((end - begin) * 1000, 3)}ms"
             )
     except Exception as e:
-        migrate_log(f"Exception: {e}")
+        print(f"Exception: {e}")
         sys.exit(1)
 
-    migrate_log(f"Successfully finished {len(migrations)} config migrations")
+    print(f"Successfully finished {len(migrations)} config migrations")
 
     return config
 
@@ -141,34 +140,32 @@ async def perform_pg_migration(
     if current_version == -1:  # database is not initialized, run migration 0
         migrations = [migrations[0]]
 
-    migrate_log(
+    print(
         f'Beginning database migrations: {" -> ".join([str(current_version)] + [str(m.version) for m in migrations])}'
     )
 
     try:
         for m in migrations:
-            migrate_log(f"Started  migration {m.version} ...")
+            print(f"Started  migration {m.version} ...")
 
             begin = time.time()
             await m._up(latest)
             end = time.time()
 
-            migrate_log(
+            print(
                 f"Finished migration {m.version} in {round((end - begin) * 1000, 3)}ms"
             )
     except Exception as e:
-        migrate_log(f"Exception: {e}")
+        print(f"Exception: {e}")
         sys.exit(1)
     finally:
         await connection.close()
 
-    migrate_log(f"Successfully finished {len(migrations)} database migrations")
+    print(f"Successfully finished {len(migrations)} database migrations")
 
 
 async def migrate(app: web.Application) -> None:
-    init_logger(app["config"])
     new_config = await perform_config_migration(app["config"])
-    init_logger(new_config)
 
     with open(app["args"].config_file, "w") as f:
         f.write(yaml.dump(new_config, default_flow_style=False))
@@ -178,8 +175,8 @@ async def migrate(app: web.Application) -> None:
     pg_connection = await asyncpg.connect(**app["config"]["postgres"])
 
     if os.environ.get("LEADER", "0") == "0":
-        migrate_log("Not leader, skipping postgres migration")
+        print("Not leader, skipping postgres migration")
         return
 
-    migrate_log("Leader, starting postgres migration")
+    print("Leader, starting postgres migration")
     await perform_pg_migration(app["config"], pg_connection)
