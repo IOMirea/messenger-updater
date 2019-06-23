@@ -25,6 +25,7 @@ from aiohttp import web
 from cli import args
 from rpc import init_rpc, stop_rpc
 from migrate import migrate
+from utils import pull
 
 
 async def on_startup(app: web.Application) -> None:
@@ -77,6 +78,8 @@ async def api_wh(req: web.Request) -> web.Response:
 
 
 if __name__ == "__main__":
+    pull("/code")
+
     app = web.Application()
 
     with open(args.config_file, "r") as f:
@@ -90,8 +93,4 @@ if __name__ == "__main__":
     app.add_routes([web.post("/wh/github/updater", updater_wh)])
     app.add_routes([web.post("/wh/github/api", api_wh)])
 
-    web.run_app(
-        app,
-        host=app["args"].host,
-        port=app["args"].port,
-    )
+    web.run_app(app, host=app["args"].host, port=app["args"].port)

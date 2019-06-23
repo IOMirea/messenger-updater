@@ -2,3 +2,4 @@ asyncpg
 aioredis
 aiohttp
 pyyaml>=4.2b1
+GitPython

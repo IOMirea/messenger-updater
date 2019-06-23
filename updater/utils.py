@@ -16,29 +16,20 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import argparse
+import os
+import signal
 
-from pathlib import Path
+from git import Repo
 
 
-argparser = argparse.ArgumentParser(description="IOMirea server updater")
-argparser.add_argument(
-    "-H",
-    "--host",
-    default="127.0.0.1",
-    help="Host to run API on. Defaults to 127.0.0.1",
-)
+def pull(path: str) -> None:
+    repo = Repo(path)
 
-argparser.add_argument(
-    "-P", "--port", default="8081", help="Port to run API on. Defaults to 8081"
-)
+    print(f"GIT: Pulling {path} <- {repo.remotes.origin.url}")
 
-argparser.add_argument(
-    "-C",
-    "--config-file",
-    type=Path,
-    default=Path("/config/config.yaml"),
-    help="Path to the config file. Defaults to /config/config.yaml",
-)
+    repo.remotes.origin.pull()
 
-args = argparser.parse_args()
+
+def clean_exit() -> None:
+    # avoid traceback
+    os.kill(os.getpid(), signal.SIGINT)
