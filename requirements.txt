@@ -14,6 +14,7 @@ gitdb2==2.0.5             # via gitpython
 gitpython==2.1.11
 hiredis==1.0.0            # via aioredis
 idna==2.8                 # via yarl
+git+git://github.com/IOMirea/rpc@v0.1.0#egg=iomirea_rpc
 multidict==4.5.2          # via aiohttp, yarl
 pyyaml==5.1
 smmap2==2.0.5             # via gitdb2

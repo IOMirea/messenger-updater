@@ -17,11 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from copy import copy
-from typing import Dict, Any
-
-import aioredis
 
 from aiohttp import web
+from iomirea_rpc import Client, Server
 
 from utils import pull, clean_exit
 
@@ -38,75 +36,26 @@ RPC_COMMAND_EVAL_ALL = 300
 RPC_COMMAND_EVAL_UPDATER = 301
 RPC_COMMAND_EVAL_API = 302
 
-RPC_CHANNEL_UPDATER = "rpc:updater"
-RPC_RESPONSE_CHANNEL = "rpc:updater-response"
+
+async def restart_updater(srv: Server, address: str) -> None:
+    clean_exit()
 
 
-async def reader(
-    app: web.Application, channel: aioredis.pubsub.Channel
-) -> None:
-    print(f"RPC: listening {RPC_CHANNEL_UPDATER}")
-
-    while await channel.wait_message():
-        try:
-            payload = await channel.get_json()
-        except Exception as e:
-            print(f"RPC: error decoding message: {e}")
-
-        try:
-            await process_command(app, payload)
-        except Exception as e:
-            print(
-                f"RPC: error processing command: {e.__class__.__name__}: {e}; Payload: {payload}"
-            )
-
-    print(f"RPC: stopped listening {RPC_CHANNEL_UPDATER}")
+async def pull_all(srv: Server, address: str) -> None:
+    pull("/code")
+    pull("/api")
 
 
-async def send_response(
-    app: web.Application, address: str, response: str
-) -> None:
-    # a: address
-    # r: string response
-    await app["pub"].publish_json(
-        RPC_RESPONSE_CHANNEL, {"a": address, "r": response}
-    )
+async def pull_updater(srv: Server, address: str) -> None:
+    pull("/code")
 
 
-async def process_command(
-    app: web.Application, payload: Dict[str, Any]
-) -> None:
-    # c: command, int
-    # a: address, string
-    # d: data, json
+async def pull_api(srv: Server, address: str) -> None:
+    pull("/api")
 
-    command = payload["c"]
-    # address = payload["a"]
-    # data = payload.get("d", {})
 
-    print(f"RPC: received command {command}")
-
-    if command == RPC_COMMAND_RESTART_UPDATER:
-        print("RPC: restarting")
-
-        clean_exit()
-
-    elif command == RPC_COMMAND_PULL_ALL:
-        pull("/code")
-        pull("/api")
-
-    elif command == RPC_COMMAND_PULL_UPDATER:
-        pull("/code")
-
-    elif command == RPC_COMMAND_PULL_API:
-        pull("/api")
-
-    elif command == RPC_COMMAND_EVAL_UPDATER:
-        # TODO
-        pass
-
-    else:
-        print("RPC: unknown command")
+async def eval_updater(srv: Server, address: str, code: str) -> None:
+    await srv.respond(address, "Eval is not implemented yet")
 
 
 async def init_rpc(app: web.Application) -> None:
@@ -114,13 +63,26 @@ async def init_rpc(app: web.Application) -> None:
     host = config.pop("host")
     port = config.pop("port")
 
-    app["pub"] = await aioredis.create_redis((host, port), **config)
-    app["sub"] = await aioredis.create_redis((host, port), **config)
+    app["api_rpc_client"] = Client("api")
+    app["rpc_server"] = Server("updater")
 
-    channels = await app["sub"].subscribe(RPC_CHANNEL_UPDATER)
-    app.loop.create_task(reader(app, channels[0]))
+    await app["api_rpc_client"].run((host, port), **config)
+    await app["rpc_server"].run((host, port), **config)
+
+    app["rpc_server"].register_command(
+        RPC_COMMAND_RESTART_UPDATER, restart_updater
+    )
+
+    app["rpc_server"].register_command(RPC_COMMAND_PULL_ALL, pull_all)
+
+    app["rpc_server"].register_command(RPC_COMMAND_PULL_UPDATER, pull_updater)
+
+    app["rpc_server"].register_command(RPC_COMMAND_PULL_API, pull_api)
+
+    app["rpc_server"].register_command(RPC_COMMAND_EVAL_UPDATER, eval_updater)
 
 
 async def stop_rpc(app: web.Application) -> None:
-    app["pub"].close()
-    app["sub"].close()
+    # await app["api_rpc_client"].stop()
+    # await app["rpc_server"].stop()
+    pass
