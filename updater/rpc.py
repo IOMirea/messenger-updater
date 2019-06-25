@@ -63,8 +63,8 @@ async def init_rpc(app: web.Application) -> None:
     host = config.pop("host")
     port = config.pop("port")
 
-    app["api_rpc_client"] = Client("api")
-    app["rpc_server"] = Server("updater")
+    app["api_rpc_client"] = Client("api", loop=app.loop)
+    app["rpc_server"] = Server("updater", loop=app.loop)
 
     await app["api_rpc_client"].run((host, port), **config)
     await app["rpc_server"].run((host, port), **config)
@@ -72,13 +72,9 @@ async def init_rpc(app: web.Application) -> None:
     app["rpc_server"].register_command(
         RPC_COMMAND_RESTART_UPDATER, restart_updater
     )
-
     app["rpc_server"].register_command(RPC_COMMAND_PULL_ALL, pull_all)
-
     app["rpc_server"].register_command(RPC_COMMAND_PULL_UPDATER, pull_updater)
-
     app["rpc_server"].register_command(RPC_COMMAND_PULL_API, pull_api)
-
     app["rpc_server"].register_command(RPC_COMMAND_EVAL_UPDATER, eval_updater)
 
 
