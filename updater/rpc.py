@@ -66,8 +66,8 @@ async def init_rpc(app: web.Application) -> None:
     app["api_rpc_client"] = Client("api", loop=app.loop)
     app["rpc_server"] = Server("updater", loop=app.loop)
 
-    await app["api_rpc_client"].run((host, port), **config)
-    await app["rpc_server"].run((host, port), **config)
+    app.loop.create_task(app["api_rpc_client"].run((host, port), **config))
+    app.loop.create_task(app["rpc_server"].run((host, port), **config))
 
     app["rpc_server"].register_command(
         RPC_COMMAND_RESTART_UPDATER, restart_updater
@@ -79,6 +79,5 @@ async def init_rpc(app: web.Application) -> None:
 
 
 async def stop_rpc(app: web.Application) -> None:
-    # await app["api_rpc_client"].stop()
-    # await app["rpc_server"].stop()
-    pass
+    app["api_rpc_client"].close()
+    app["rpc_server"].close()
