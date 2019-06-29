@@ -22,12 +22,22 @@ import signal
 from git import Repo
 
 
-def pull(path: str) -> None:
+def pull(path: str) -> bool:
+    """
+    Pulls changes from git repository in given folder.
+
+    Returns boolean indicating if changes were made.
+    """
+
     repo = Repo(path)
+
+    old_hash = repo.head.object.hexsha
 
     print(f"GIT: Pulling {path} <- {repo.remotes.origin.url}")
 
     repo.remotes.origin.pull()
+
+    return repo.head.object.hexsha != old_hash
 
 
 def clean_exit() -> None:

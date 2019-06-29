@@ -18,8 +18,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from copy import copy
 
+from typing import Dict, Optional
+
 from aiohttp import web
-from iomirea_rpc import Client, Server
+from iomirea_rpc import Client, Server, Request
+from iomirea_rpc.server import NoValue
 
 from utils import pull, clean_exit
 
@@ -37,25 +40,33 @@ RPC_COMMAND_EVAL_UPDATER = 301
 RPC_COMMAND_EVAL_API = 302
 
 
-async def restart_updater(srv: Server, address: str) -> None:
+async def restart_updater(
+        srv: Server, req: Request,
+        node: Optional[str] = None
+    ) -> None:
+    if node == srv.node:
+        return NoValue
+
     clean_exit()
 
 
-async def pull_all(srv: Server, address: str) -> None:
-    pull("/code")
-    pull("/api")
+async def pull_all(srv: Server, req: Request) -> Dict[str, bool]:
+    return {
+        "code": pull("/code"),
+        "api": pull("/api")
+    }
 
 
-async def pull_updater(srv: Server, address: str) -> None:
-    pull("/code")
+async def pull_updater(srv: Server, req: Request) -> bool:
+    return pull("/code")
 
 
-async def pull_api(srv: Server, address: str) -> None:
-    pull("/api")
+async def pull_api(srv: Server, req: Request) -> bool:
+    return pull("/api")
 
 
-async def eval_updater(srv: Server, address: str, code: str) -> None:
-    await srv.respond(address, "Eval is not implemented yet")
+async def eval_updater(srv: Server, req: Request, code: str) -> str:
+    return "Eval is not implemented yet"
 
 
 async def init_rpc(app: web.Application) -> None:
@@ -64,9 +75,11 @@ async def init_rpc(app: web.Application) -> None:
     port = config.pop("port")
 
     app["api_rpc_client"] = Client("api", loop=app.loop)
+    app["rpc_client"] = Client("updater", loop=app.loop)
     app["rpc_server"] = Server("updater", loop=app.loop)
 
     app.loop.create_task(app["api_rpc_client"].run((host, port), **config))
+    app.loop.create_task(app["rpc_client"].run((host, port), **config))
     app.loop.create_task(app["rpc_server"].run((host, port), **config))
 
     app["rpc_server"].register_command(

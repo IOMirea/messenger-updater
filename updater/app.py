@@ -17,15 +17,19 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import hmac
+import asyncio
 
 import yaml
 
 from aiohttp import web
 
 from cli import args
-from rpc import init_rpc, stop_rpc
+from rpc import (
+        init_rpc, stop_rpc, RPC_COMMAND_RESTART_UPDATER, RPC_COMMAND_RESTART_API,
+        RPC_COMMAND_PULL_UPDATER, RPC_COMMAND_PULL_API
+    )
 from migrate import migrate
-from utils import pull
+from utils import pull, clean_exit
 
 
 async def on_startup(app: web.Application) -> None:
@@ -54,17 +58,33 @@ async def verify_github_request(req: web.Request) -> None:
         raise web.HTTPUnauthorized(reason="Hashes did not match")
 
 
+async def update_updaters() -> None:
+    await app["rpc_client"].call(RPC_COMMAND_PULL_UPDATER, timeout=15)
+
+    # TODO: only restart nodes with successfull pull
+
+    await app["rpc_client"].call(
+        RPC_COMMAND_RESTART_UPDATER, {"node": app["rpc_server"].node}
+    )
+
+    # update self
+    clean_exit()
+
+
+async def update_apis() -> None:
+    await app["rpc_client"].call(RPC_COMMAND_PULL_API, timeout=15)
+
+    # TODO: only restart nodes with successfull pull
+
+    await app["api_rpc_client"].call(RPC_COMMAND_RESTART_API)
+
+
 async def updater_wh(req: web.Request) -> web.Response:
     await verify_github_request(req)
 
-    # TODO:
-    # - git pull
-    # - git pull workers
-    # - stop workers
-    # - perform config migration (parallel?)
-    # - perform database migration (parallel?)
-    # - restart (if needed)
-    # - start workers
+    print("UPDATER webhook fired")
+
+    asyncio.create_task(update_updaters())
 
     return web.Response()
 
@@ -72,7 +92,9 @@ async def updater_wh(req: web.Request) -> web.Response:
 async def api_wh(req: web.Request) -> web.Response:
     await verify_github_request(req)
 
-    # TODO: everything
+    print("API webhook fired")
+
+    asyncio.create_task(update_apis())
 
     return web.Response()
 
